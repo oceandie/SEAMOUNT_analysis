@@ -7,5 +7,5 @@ Code to analyse, plot and discuss SEAMOUNT testcase's results
 git clone https://github.com/oceandie/SEAMOUNT_analysis.git
 cd SEAMOUNT_analysis
 conda env create -f pyogcm.yml
-conda activate pyogcm.yml
+conda activate pyogcm
 ```
