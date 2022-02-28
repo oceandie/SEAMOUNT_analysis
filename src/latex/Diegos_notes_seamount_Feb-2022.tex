@@ -1,0 +1,145 @@
+\documentclass[authoryear]{elsarticle}
+
+\usepackage{lineno,hyperref}
+\usepackage{natbib}
+\usepackage{amsmath,subcaption}    %% added by MJB to allow split and subfigure
+\usepackage{enumerate} %% added by MJB
+\usepackage{listings}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyvrb}
+\usepackage{graphicx}
+\graphicspath{ {./Current_Code_Review_Images/} }
+\usepackage{bm}
+\usepackage{tikz}
+\lstset{
+basicstyle=\small\ttfamily,
+columns=flexible,
+breaklines=true
+}
+\modulolinenumbers[1]
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+%\journal{Journal of Templates}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Elsevier bibliography styles
+%%%%%%%%%%%%%%%%%%%%%%%
+%% To change the style, put a % in front of the second line of the current style and
+%% remove the % from the second line of the style you would like to use.
+%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Numbered
+%\bibliographystyle{model1-num-names}
+
+%% Numbered without titles
+%\bibliographystyle{model1a-num-names}
+
+%% Harvard
+%\bibliographystyle{model2-names}
+%\biboptions{authoryear}
+
+%% Vancouver numbered
+%\usepackage{numcompress}\bibliographystyle{model3-num-names}
+
+%% Vancouver name/year
+%\usepackage{numcompress}\bibliographystyle{model4-names}\biboptions{authoryear}
+
+%% APA style
+%\bibliographystyle{model5-names}\biboptions{authoryear}
+
+%% AMA style
+%\usepackage{numcompress}\bibliographystyle{model6-num-names}
+
+%% `Elsevier LaTeX' style
+%\bibliographystyle{elsarticle-num}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Development and validation of \\ the SEAMOUNT test case}
+
+\author{Diego Bruciaferri}
+\address{Met Office, Fitzroy Rd, Exeter, UK }
+
+\begin{abstract}
+\end{abstract}
+
+%\begin{keyword}
+%\end{keyword}
+\end{frontmatter}
+
+% \linenumbers
+
+\today{}
+
+\section{Introduction} 
+
+We decided to modify the SEAMOUNT test case previously implemented by Amy to include the following enhancements:
+
+\begin{itemize}
+	\item[1.] Remove the subtraction of a reference density profile prior the computation of the pressure gradient force, i.e. using NEMO standard Primitive Equations. This should allow us to test the new HPG schemes in a more realistic setup.
+	\item[2.] Point 1 allow us to choose a more modern and `similar-to-NEMO' reference publication for the SEAMOUNT test case. After some trials, the study of \cite{Ezer2002} has been chosen for the following reasons:
+	\begin{itemize}
+		\item  
+    \end{itemize}
+    \item[3.] stretched coordinates 
+    \item[4.] VQS  
+\end{itemize}
+
+Section \ref{Sec_first_calcn} lays out one set of calculations. A simpler approach is described in section \ref{Sec_second_calcn}. 
+Section \ref{Sec_third_calcn} generalises the calculations to grids whose spacing is smoothly varying. A simpler solution
+to that problem is derived in section \ref{Sec_fourth_calcn}  
+
+\section{Test case configuration} \label{config}
+
+\section{Numerical experiments setup} \label{exp_setup}
+\begin{table}[htp]
+	\centering
+	\hspace{-7cm}
+	%\begin{center}
+	\begin{scriptsize}
+		\begin{tabular}{llcccc}
+			\cmidrule[0.5pt]{1-6}
+			\textsc{\textbf{EXP}} & \textsc{\textbf{Seamount}} & \textsc{\textbf{HPG}} & \textsc{\textbf{EOS}} & \textsc{\textbf{Vertical coord.}} & \textsc{\textbf{rmax}} \\
+			\cmidrule[0.5pt]{1-6}
+			N-SCO-m      & moderately steep & SCO & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-SCO-s      & very steep       & SCO & EOS-80  & $\sigma$-coord. & 0.36 \\
+			N-PRJ-m      & moderately steep & PRJ & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-PRJ-s      & very steep       & PRJ & EOS-80  & $\sigma$-coord. & 0.36 \\
+			N-DJC-CTR-m  & moderately steep & DJC & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-DJC-CTR-s  & very steep       & DJC & EOS-80  & $\sigma$-coord. & 0.36 \\
+			N-DJC-TEOS-m & moderately steep & DJC & TEOS-10 & $\sigma$-coord. & 0.07 \\
+			N-DJC-TEOS-s & very steep       & DJC & TEOS-10 & $\sigma$-coord. & 0.36 \\
+			N-DJC-SH94-m & moderately steep & DJC & EOS-80  & $s$-coord.      & 0.07 \\
+			             &                  &     &         & \cite{Song1994}  &      \\
+			N-DJC-SH94-s & very steep       & DJC & EOS-80  & $s$-coord.      & 0.36 \\
+			             &                  &     &         & \cite{Song1994}  &      \\	
+			N-DJC-VQS-m  & moderately steep & DJC & EOS-80  & $\sigma$-coord. & 0.06 \\
+			N-DJC-VQS-s  & very steep       & DJC & EOS-80  & $\sigma$-coord. & 0.30 \\              
+			\cmidrule[.5pt]{1-6}
+		\end{tabular}
+	\end{scriptsize}
+	\hspace{-7cm}
+	\caption{ }
+\end{table}
+
+\section{Results} \label{results} 
+
+%\begin{figure}[htp]
+%	\centering
+%	\hspace{-7cm}
+%	\begin{tabular}{c}
+%		\includegraphics[width = 13cm]{figures/area2-3.pdf} \\
+%	\end{tabular}
+%	\hspace{-7cm}
+%	\caption{}\label{fig:2}
+%\end{figure}
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{biblio.bib}
+
+\end{document}
+
+
