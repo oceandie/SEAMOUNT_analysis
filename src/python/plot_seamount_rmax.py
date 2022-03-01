@@ -12,9 +12,9 @@ import matplotlib.patches as patches
 import matplotlib.cm as cm
 import xarray as xr
 
-def calc_rmax(depth: xr.DataArray) -> xr.DataArray:
+def calc_r0(depth: xr.DataArray) -> xr.DataArray:
     """
-    Calculate rmax: measure of steepness
+    Calculate slope parameter r0: measure of steepness
     This function returns the slope paramater field
 
     r = abs(Hb - Ha) / (Ha + Hb)
@@ -76,8 +76,10 @@ def calc_rmax(depth: xr.DataArray) -> xr.DataArray:
 meshmask = ['/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-CTR_steep/mesh_mask.nc',
             '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-CTR_moderate/mesh_mask.nc',
             '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-SH94_moderate/mesh_mask.nc',
-            '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_moderate/mesh_mask.nc']
-conf = ['ctr-s','ctr-m','sh94-m','vqs-m']
+            '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_moderate/mesh_mask.nc',
+            '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_steep/mesh_mask.nc',
+            '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_steep/mesh_mask.nc']
+conf = ['ctr-s','ctr-m','sh94-m','vqs-m','vqs-s','vqs-s-zoom']
 
 fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots' 
 
@@ -88,12 +90,12 @@ for exp in range(len(meshmask)):
     # Loading domain geometry
     ds_dom = xr.open_dataset(meshmask[exp], drop_variables=("x", "y"))
 
-    # Computing rmax
-    rmax  = calc_rmax(ds_dom.gdepw_0.squeeze().isel(nav_lev=-1))
-    rmax  = rmax.drop_vars("nav_lev")
- 
+    # Computing slope paramter of model levels
+    r0 = calc_r0(ds_dom.gdept_0.squeeze().isel(nav_lev=-1))
+    r0 = r0.drop_vars("nav_lev")
+     
     # Adding 3rd dimension for plotting
-    rmax  = rmax.expand_dims({"nav_lev": 20})
+    r0    = r0.expand_dims({"nav_lev": 20})
     glamt = ds_dom.glamt.expand_dims({"nav_lev": 20})
     glamu = ds_dom.glamu.expand_dims({"nav_lev": 20})
 
@@ -105,9 +107,9 @@ for exp in range(len(meshmask)):
     tmask_y = ds_dom.tmask.isel(y=31).squeeze()
     tmask_y = tmask_y.drop_vars("nav_lev")
 
-    rmax_y = rmax.isel(y=31).squeeze()
-    rmax_y = rmax_y.where(tmask_y==1)
-
+    r0_y = r0.isel(y=31).squeeze()
+    r0_y = r0_y.where(tmask_y==1)
+    
     fig = plt.figure(figsize=(30, 20), dpi=100)
     ax = fig.add_subplot()
     ax.invert_yaxis()
@@ -120,11 +122,11 @@ for exp in range(len(meshmask)):
     ni = len(levT_y.x)
     nk = len(levT_y.nav_lev)
 
-    # Interpolating T-depths on U and W grid
+    # Computing depths on U and W grid
     levUT_y = levT_y.rolling({"x": 2}).mean().fillna(levT_y[:, 0])
     levUW_y = levUT_y.rolling({"nav_lev": 2}).mean().fillna(0.0) # surface
 
-    # Interpolating T-coord. on U grid
+    # Computing coords on U grid
     glamU_y = glamT_y.rolling({"x": 2}).mean()
     glamU_y[:, 0] = glamT_y[:, 0] - (glamU_y[:, 1] - glamT_y[:, 0])
 
@@ -136,13 +138,12 @@ for exp in range(len(meshmask)):
     glamU_yp1[:-1, :-1] = glamU_y.data
 
     cmap = cm.get_cmap("hot_r").copy()
-    #cmap.set_under(color='silver')
  
     if '-m' in conf[exp]:
        pc = ax.pcolormesh(
                   glamU_yp1, 
                   levUW_yp1, 
-                  rmax_y, 
+                  r0_y, 
                   cmap=cmap,
                   vmin=0.,
                   vmax=0.07 
@@ -151,66 +152,68 @@ for exp in range(len(meshmask)):
        pc = ax.pcolormesh(
                   glamU_yp1, 
                   levUW_yp1,
-                  rmax_y,
-                  cmap=cmap
+                  r0_y,
+                  cmap=cmap,
+                  vmin=0.,
+                  vmax=0.35
             )
 
-    # MODEL W-levels and T-points ----------------------------
+    # MODEL W-levels and U-points ----------------------------
     for k in range(len(ds_dom.nav_lev)):
+        if 'ctr-s' in conf[exp]:
+           # To avoid visual inconsistency
+           # due to the steepness 
+           x = glamT_y.isel(nav_lev=k)
+           z = levW_y.isel(nav_lev=k)
+        else:
+           x = glamU_y.isel(nav_lev=k)
+           z = levUW_y.isel(nav_lev=k)
         ax.plot(
-            #glamT_y.isel(nav_lev=k),
-            #levW_y.isel(nav_lev=k),
-            glamU_y.isel(nav_lev=k),
-            levUW_y.isel(nav_lev=k),
+            x,
+            z,
             color="k",
             zorder=5
         )
-        ax.scatter(
-            glamT_y.isel(nav_lev=k),
-            levT_y.isel(nav_lev=k),
-            s = 5.0,
-            color="k",
-            #zorder=5
-        )
-
     for i in range(len(ds_dom.x)):
         ax.plot(
            [glamU_y.isel(x=i)[0],
             glamU_y.isel(x=i)[-1]],
            [np.nanmin(levW_y),
-            np.nanmax(levW_y)],
+            levUW_y.isel(x=i)[-1]],
            color="k",
-           linestyle='--'
+           linestyle='--',
+           zorder=5
         )
 
-    # MODEL BATHYMETRY
-    ax.plot(
-            glamT_y[-1, :],
-            levW_y[-1, :],
-            color="deepskyblue",
-            linewidth=5,
-            zorder=5
+    if conf[exp] == 'vqs-s':
+       ax.plot(
+          [225., 225., 280.,280.,220.],
+          [500.,1800.,1800.,500.,500.],
+          color="limegreen",
+          linestyle='--',
+          linewidth=9.,
+          zorder=5
         )
-    
-    #path = [
-    #    [glamT_y[-1, 0], levT_y[-1, 0]],
-    #    [glamT_y[-1, -1], levT_y[-1, -1]],
-    #    ]
-    #for i in range(len(levW_y.x)):
-    #    path.append([glamT_y[-1, i], levW_y[-1, i]])
-    #ax.add_patch(patches.Polygon(path, facecolor="silver", zorder=4))
 
-    #path = [
-    #    [glamU_y[-1,  0], bathy_m[ 0]],
-    #    [glamU_y[-1, -1], bathy_m[-1]],
-    #    ]
-    #for i in range(len(bathy_m.x)):
-    #    path.append([glamT_y[-1, i], levW_y[-1, i]])
-    #ax.add_patch(patches.Polygon(path, facecolor="silver", zorder=4, alpha=0.4))
+
+    if 'ctr-s' in conf[exp]:
+       # To avoid visual inconsistency
+       # due to the steepness
+       path = [
+           [glamT_y[-1, 0], levT_y[-1, 0]],
+           [glamT_y[-1, -1], levT_y[-1, -1]],
+           ]
+       for i in range(len(levW_y.x)):
+           path.append([glamT_y[-1, i], levW_y[-1, i]])
+       ax.add_patch(patches.Polygon(path, facecolor="silver", zorder=4))
 
     # PLOT setting ----------------------------
-    ax.set_ylim(4500.0, 0.0)
-    ax.set_xlim(8, 500)
+    if conf[exp] == 'vqs-s-zoom':
+       ax.set_ylim(1800.0, 500.0)
+       ax.set_xlim(225, 280)
+    else:
+       ax.set_ylim(4500.0, 0.0)
+       ax.set_xlim(8, 500)
     cb = plt.colorbar(pc)
     cb.set_label("Slope parameter", size=40)
     cb.ax.tick_params(labelsize=30)
