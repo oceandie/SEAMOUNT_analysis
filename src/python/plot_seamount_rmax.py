@@ -99,8 +99,6 @@ for exp in range(len(meshmask)):
 
     # Plotting ----------------------------------------------------------
 
-    bathy_m = ds_dom.bathymetry.isel(y=31).squeeze()
-
     levT_y = ds_dom.gdept_0.isel(y=31).squeeze()
     levW_y = ds_dom.gdepw_0.isel(y=31).squeeze()
     glamT_y = glamt.isel(y=31).squeeze()
@@ -160,8 +158,10 @@ for exp in range(len(meshmask)):
     # MODEL W-levels and T-points ----------------------------
     for k in range(len(ds_dom.nav_lev)):
         ax.plot(
-            glamT_y.isel(nav_lev=k),
-            levW_y.isel(nav_lev=k),
+            #glamT_y.isel(nav_lev=k),
+            #levW_y.isel(nav_lev=k),
+            glamU_y.isel(nav_lev=k),
+            levUW_y.isel(nav_lev=k),
             color="k",
             zorder=5
         )
@@ -184,6 +184,14 @@ for exp in range(len(meshmask)):
         )
 
     # MODEL BATHYMETRY
+    ax.plot(
+            glamT_y[-1, :],
+            levW_y[-1, :],
+            color="deepskyblue",
+            linewidth=5,
+            zorder=5
+        )
+    
     #path = [
     #    [glamT_y[-1, 0], levT_y[-1, 0]],
     #    [glamT_y[-1, -1], levT_y[-1, -1]],
