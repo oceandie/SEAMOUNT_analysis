@@ -166,8 +166,8 @@ for exp in range(len(meshmask)):
            x = glamT_y.isel(nav_lev=k)
            z = levW_y.isel(nav_lev=k)
         else:
-           x = glamU_y.isel(nav_lev=k)
-           z = levUW_y.isel(nav_lev=k)
+            x = glamU_y.isel(nav_lev=k)
+            z = levUW_y.isel(nav_lev=k)
         ax.plot(
             x,
             z,

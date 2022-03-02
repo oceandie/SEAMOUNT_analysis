@@ -1,6 +1,7 @@
 \documentclass[authoryear]{elsarticle}
 
 \usepackage{lineno,hyperref}
+\usepackage[table]{xcolor}
 \usepackage{natbib}
 \usepackage{amsmath,subcaption}    %% added by MJB to allow split and subfigure
 \usepackage{enumerate} %% added by MJB
@@ -9,7 +10,7 @@
 \usepackage{booktabs}
 \usepackage{fancyvrb}
 \usepackage{graphicx}
-\graphicspath{ {./Current_Code_Review_Images/} }
+\graphicspath{ {../../plots/} }
 \usepackage{bm}
 \usepackage{tikz}
 \lstset{
@@ -80,22 +81,92 @@ We decided to modify the SEAMOUNT test case previously implemented by Amy to inc
 
 \begin{itemize}
 	\item[1.] Remove the subtraction of a reference density profile prior the computation of the pressure gradient force, i.e. using NEMO standard Primitive Equations. This should allow us to test the new HPG schemes in a more realistic setup.
-	\item[2.] Point 1 allow us to choose a more modern and `similar-to-NEMO' reference publication for the SEAMOUNT test case. After some trials, the study of \cite{Ezer2002} has been chosen for the following reasons:
+	\item[2.] Choose a more modern and `similar-to-NEMO' reference publication for the SEAMOUNT test case. After some trials, the study of \cite{Ezer2002} has been chosen for the following reasons:
 	\begin{itemize}
-		\item  
+		\item The parameters of the experimental setup are described in great detail.
+		\item The model is initialised with the active tracers and their initial profiles are given.
+		      The experiments use non-linear EOS: although it is not specified, it is very likely it was EOS80 since in 2002 TEOS10 was not used yet (true?). However, in our experiments we test both EOS80 and TEOS10.
+		\item The study compares the HPG schemes of two very popular terrain-following models (i.e., 
+		      POM and ROMS), offering a unique opportunity to compare our HPG schemes with both models in a `neutral' setup.
+		\item The study includes also other flavours of the popular SEAMOUNT test case, offering the 
+		      opportunity to explore other aspect of the numerics of this test case. 
     \end{itemize}
-    \item[3.] stretched coordinates 
-    \item[4.] VQS  
+    \item[3.] Include stretched s-coordinates (the \cite{Song1994} stretching function). 
+    \item[4.] Include Vanishing Quasi-Sigma (VQS) coordinates.
 \end{itemize}
 
-Section \ref{Sec_first_calcn} lays out one set of calculations. A simpler approach is described in section \ref{Sec_second_calcn}. 
-Section \ref{Sec_third_calcn} generalises the calculations to grids whose spacing is smoothly varying. A simpler solution
-to that problem is derived in section \ref{Sec_fourth_calcn}  
+This report has multiple aims:
+\begin{itemize}
+	\item test the new \cite{Ezer2002} configuration of the SEAMOUNT test case;
+	\item validate the DJC scheme implemented by Mike and Amy comparing its skills in the SEAMOUNT test case against other NEMO HPG schemes (SCO and PRJ) and \cite{Ezer2002} results;
+	\item validate the new code for stretched s-coordinates and Vanishing Quasi-Sigma coordinates.
+\end{itemize}	
 
-\section{Test case configuration} \label{config}
+Section \ref{Sec_conf} summarises the numerical parameters of the new SEAMOUNT test case. Section \ref{Sec_exp} describes the numerical experiments conducted in this first phase of study while section \ref{Sec_res} presents and describes our results. 
 
-\section{Numerical experiments setup} \label{exp_setup}
+\section{Test case configuration} \label{Sec_conf}
+
 \begin{table}[htp]
+	\centering
+	\hspace{-7cm}
+	%\begin{center}
+	\begin{scriptsize}
+		\begin{tabular}{lcl}
+			\cmidrule[0.5pt]{1-3}
+			\textsc{\textbf{Parameter}} & \textsc{\textbf{Setting}} & \textsc{\textbf{Comments}} \\
+			\cmidrule[0.5pt]{1-3}
+            \cellcolor{gray!25}\textsc{Physical domain} & & \\           
+			Bottom topography & $H(x,y) = H_{b}[1-Ae^{-(x^2 + y^2)/L^2}]$ & $H_{b} = 4500 m$ \\
+			           & & \\
+			           &                                             & \underline{Very steep seamount} \\
+			           &                                             & $\;\;A = 0.9$  \\ 
+			           &                                             & $\;\;L = 25 \; km$  \\
+			           &                                             & $\;\;$Max slope param $r_0 = 0.36$ \\
+			           & & \\
+			           &                                             & \underline{Moderat. steep seamount} \\      
+			           &                                             & $\;\;A = 0.6$ \\
+			           &                                             & $\;\;L = 50 \; km$ \\ 
+			           &                                             & $\;\;$Max slope param $r_0 = 0.07$ \\
+			Domain dimensions & $504 \;km \times 504 \;km$           & \\             
+			Coriolis param. & $10^{-4}\; s^{-1}$                     & $f$-plane approx. \\
+			Boundaries & Closed east-west \& north-south             & \\
+			\cmidrule[0.5pt]{1-3}           
+			\cellcolor{gray!25}\textsc{Numerical settings} & & \\  
+			Horiz. resol.  & $64 \times 64$ grid points            & $\Delta x = \Delta y = 8 \; km$ \\
+			Vertic. resol. & $20$ grid points                      & $\Delta z \approx 236.8 \; m$ ($\sigma$-coord) \\
+			Time step      & $\Delta t_{int} = 360 \;s$            & $\Delta t_{int} / \Delta t_{ext} = 30$ \\
+			               & $\Delta t_{ext} = 12 \;s$             & \\
+			Stretching ($s$-coord.) & \cite{Song1994}            & $\theta = 3.$ \\
+			                        &                            & $bb = 0.$  \\
+			                        &                            & $hc = 500. \; m$  \\
+			Max. allowed slope param. (VQS) &                      & \underline{Very steep seamount} \\
+			                                &                        & $r_{max} = 0.25$ \\
+			                                &                        & \underline{Moderat. steep seamount} \\
+			                                &                        & $r_{max} = 0.05$ \\
+            Tracers advection  & $2^{nd}$ order centred scheme & \\
+            Momentum advection & $2^{nd}$ order centred scheme & vector formulation \\
+            Vorticity scheme   & Energy \& Enstrophy conserving scheme & \\
+            Horiz. diffusivity & Switched off & \\
+			Horiz. viscosity   & $A^h_m = 500 \; m^2 \;s^{-1}$ & laplacian operator \\
+			                   &                               & geopotential direction \\
+			Vert. diffusivity  & $A^v_t = 2 \times 10^{-5} \; m^2 \;s^{-1}$ & \\
+			Vert. viscosity    & $A^v_m = 2 \times 10^{-5} \; m^2 \;s^{-1}$ & \\                                            
+			\cmidrule[0.5pt]{1-3}           
+			\cellcolor{gray!25}\textsc{Initial stratification} & & \\
+			Temperature & $T(x,y,z) = 5 + 15e^{z/1000}$ & \\
+			Salinity    & $S(x,y,z) = 35$ psu           & \\                         
+			\cmidrule[.5pt]{1-3}
+		\end{tabular} 
+	\end{scriptsize}
+	\hspace{-7cm}
+	\caption{ }
+\end{table}
+
+\newpage
+
+\section{Numerical experiments setup} \label{Sec_exp}
+
+\begin{table}[h]
 	\centering
 	\hspace{-7cm}
 	%\begin{center}
@@ -104,19 +175,19 @@ to that problem is derived in section \ref{Sec_fourth_calcn}
 			\cmidrule[0.5pt]{1-6}
 			\textsc{\textbf{EXP}} & \textsc{\textbf{Seamount}} & \textsc{\textbf{HPG}} & \textsc{\textbf{EOS}} & \textsc{\textbf{Vertical coord.}} & \textsc{\textbf{rmax}} \\
 			\cmidrule[0.5pt]{1-6}
-			N-SCO-m      & moderately steep & SCO & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-SCO-m      & moder. steep & SCO & EOS-80  & $\sigma$-coord. & 0.07 \\
 			N-SCO-s      & very steep       & SCO & EOS-80  & $\sigma$-coord. & 0.36 \\
-			N-PRJ-m      & moderately steep & PRJ & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-PRJ-m      & moder. steep & PRJ & EOS-80  & $\sigma$-coord. & 0.07 \\
 			N-PRJ-s      & very steep       & PRJ & EOS-80  & $\sigma$-coord. & 0.36 \\
-			N-DJC-CTR-m  & moderately steep & DJC & EOS-80  & $\sigma$-coord. & 0.07 \\
+			N-DJC-CTR-m  & moder. steep & DJC & EOS-80  & $\sigma$-coord. & 0.07 \\
 			N-DJC-CTR-s  & very steep       & DJC & EOS-80  & $\sigma$-coord. & 0.36 \\
-			N-DJC-TEOS-m & moderately steep & DJC & TEOS-10 & $\sigma$-coord. & 0.07 \\
+			N-DJC-TEOS-m & moder. steep & DJC & TEOS-10 & $\sigma$-coord. & 0.07 \\
 			N-DJC-TEOS-s & very steep       & DJC & TEOS-10 & $\sigma$-coord. & 0.36 \\
-			N-DJC-SH94-m & moderately steep & DJC & EOS-80  & $s$-coord.      & 0.07 \\
+			N-DJC-SH94-m & moder. steep & DJC & EOS-80  & $s$-coord.      & 0.07 \\
 			             &                  &     &         & \cite{Song1994}  &      \\
 			N-DJC-SH94-s & very steep       & DJC & EOS-80  & $s$-coord.      & 0.36 \\
 			             &                  &     &         & \cite{Song1994}  &      \\	
-			N-DJC-VQS-m  & moderately steep & DJC & EOS-80  & $\sigma$-coord. & 0.05 \\
+			N-DJC-VQS-m  & moder. steep & DJC & EOS-80  & $\sigma$-coord. & 0.05 \\
 			N-DJC-VQS-s  & very steep       & DJC & EOS-80  & $\sigma$-coord. & 0.25 \\              
 			\cmidrule[.5pt]{1-6}
 		\end{tabular}
@@ -125,18 +196,68 @@ to that problem is derived in section \ref{Sec_fourth_calcn}
 	\caption{ }
 \end{table}
 
-\section{Results} \label{results} 
+\begin{figure}[htp]
+	\centering
+	\hspace{-7cm}
+	\begin{tabular}{cc}
+		\includegraphics[width = 6cm]{seamount_ctr-m_rmax.png} & \includegraphics[width = 6cm]{seamount_sh94-m_rmax.png} \\
+		(a) & (b) \\
+		\includegraphics[width = 6cm]{seamount_vqs-m_rmax.png} & \includegraphics[width = 6cm]{seamount_ctr-s_rmax.png} \\
+		(c) & (d) \\
+		\includegraphics[width = 6cm]{seamount_vqs-s_rmax.png} & \includegraphics[width = 6cm]{seamount_vqs-s-zoom_rmax.png} \\
+		(e) & (f) \\
+	\end{tabular}
+	\hspace{-7cm}
+	\caption{Cross sections of various model grids and correspondent slope parameters tested in this phase of the study for the moderately and very steep SEAMOUNT test cases. (a) Moderately steep seamount with uniform $\sigma$-coordinates; (b) Moderately steep seamount with stretched $s$-levels; (c) Moderately steep seamount with uniform VQS levels; (d) Very steep seamount with uniform $\sigma$-coordinates; (e) Very steep seamount with VQS levels; (f) Zoom of the zone highlighted in green in (e).}\label{fig:2}
+\end{figure}
 
-%\begin{figure}[htp]
-%	\centering
-%	\hspace{-7cm}
-%	\begin{tabular}{c}
-%		\includegraphics[width = 13cm]{figures/area2-3.pdf} \\
-%	\end{tabular}
-%	\hspace{-7cm}
-%	\caption{}\label{fig:2}
-%\end{figure}
+\newpage
 
+\section{Results} \label{Sec_res} 
+
+\begin{figure}[htp]
+	\centering
+	\hspace{-7cm}
+	\begin{tabular}{cc}
+		\includegraphics[width = 6cm]{umax_hpg_moderate.png} & \includegraphics[width = 6cm]{umax_hpg_steep.png} \\
+		(a) & (b) \\
+		\includegraphics[width = 6cm]{umax_djc_moderate.png} & \includegraphics[width = 6cm]{umax_djc_steep.png} \\
+		(c) & (d) \\
+	\end{tabular}
+	\hspace{-7cm}
+	\caption{Timeseries of maximum (in the domain) baroclinic velocity error ($m \; s^{-1}$) for the 12 experiments run in this first stage. (a) and (c) are for the Moderately steep case while (b) and (d) are for the Very steep case.}\label{fig:2}
+\end{figure}
+
+\begin{table}[h]
+	\centering
+	\hspace{-7cm}
+	%\begin{center}
+	\begin{scriptsize}
+		\begin{tabular}{llccl}
+			\cmidrule[0.5pt]{1-5}
+			\textsc{\textbf{HPG scheme}} & \textsc{\textbf{Seamount}} & \textsc{\textbf{Max. barotropic}} & \textsc{\textbf{Max. baroclinic}} & \textsc{\textbf{Comments}}\\
+			&  & \textsc{\textbf{vel. err. ($cm \; s^{-1}$)}} & \textsc{\textbf{vel. err. ($cm \; s^{-1}$)}} & \\ 
+			\cmidrule[0.5pt]{1-5}
+			N-SCO      & moder.steep  & 0.85  & 1.72  & \\
+			           & very steep   & 12.39 & 37.95 & \\
+			N-PRJ      & moder. steep & 0.01  & 0.23  & \\
+			           & very steep   & 28.28 & 182.41 & \\
+			N-DJC      & moder. steep & 0.01  & 0.22  & \\
+			           & very steep   & 1.57  & 3.25  & \\
+			R-DJC      & moder. steep & 0.06  & 0.13 & \cite{Ezer2002}\\
+			           & very steep   & 11.0  & 14.2 & \cite{Ezer2002}\\
+			P-CCD      & moder. steep & 0.02  & 0.17 & \cite{Ezer2002}\\
+			           & very steep   & 1.6   & 3.1  & \cite{Ezer2002}\\   
+			\cmidrule[.5pt]{1-5}
+		\end{tabular}
+	\end{scriptsize}
+	\hspace{-7cm}
+	\caption{ }
+\end{table}
+
+\newpage
+
+\section*{References}
 \bibliographystyle{elsarticle-harv}
 \bibliography{biblio.bib}
 

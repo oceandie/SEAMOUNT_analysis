@@ -49,10 +49,20 @@ for conf in ['steep','moderate']:
         U = dsU.uoce.rolling({'x':2}).mean().fillna(0.)
         V = dsV.voce.rolling({'y':2}).mean().fillna(0.)
         C = np.sqrt(U**2 + V**2)
+        Ubt = dsU.ubar.rolling({'x':2}).mean().fillna(0.)
+        Vbt = dsV.vbar.rolling({'y':2}).mean().fillna(0.)
+        Cbt = np.sqrt(Ubt**2 + Vbt**2)
 
         Umax = []
+        Umax_bt = [0.]
         for t in range(len(dsU.time_counter)):
             Umax.append(np.nanmax(C[t,:,:,:]))
+            Umax_bt.append(np.nanmax(Cbt[t,:,:]))
+
+        print(exp_hpg[exp]+'_'+conf)
+        print('  baroclinic:  ', np.nanmax(np.asarray(Umax)*100.))
+        print('  barotropic:  ', np.nanmax(np.asarray(Umax_bt)*100.))
+
         # Plotting ----------------------------------------------------------
 
         ax.plot(
@@ -95,10 +105,20 @@ for conf in ['steep','moderate']:
         U = dsU.uoce.rolling({'x':2}).mean().fillna(0.)
         V = dsV.voce.rolling({'y':2}).mean().fillna(0.)
         C = np.sqrt(U**2 + V**2)
+        Ubt = dsU.ubar.rolling({'x':2}).mean().fillna(0.)
+        Vbt = dsV.vbar.rolling({'y':2}).mean().fillna(0.)
+        Cbt = np.sqrt(Ubt**2 + Vbt**2)
 
         Umax = [0.]
+        Umax_bt = [0.]
         for t in range(len(dsU.time_counter)):
             Umax.append(np.nanmax(C[t,:,:,:]))
+            Umax_bt.append(np.nanmax(Cbt[t,:,:]))
+
+        print(exp_djc[exp]+'_'+conf)
+        print('  baroclinic:  ', np.nanmax(np.asarray(Umax)*100.))
+        print('  barotropic:  ', np.nanmax(np.asarray(Umax_bt)*100.))
+
         # Plotting ----------------------------------------------------------
 
         ax.plot(
