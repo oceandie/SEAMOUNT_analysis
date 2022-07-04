@@ -19,13 +19,12 @@ from utils import calc_r0, e3_to_dep, compute_tmask
 
 # 1. INPUT FILES
 
-domcfg = ['/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-CTR_steep/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-CTR_moderate/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-SH94_moderate/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_moderate/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_steep/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/N-DJC-VQS_steep/domain_cfg_out.nc']
-conf = ['ctr-s','ctr-m','sh94-m','vqs-m','vqs-s','vqs-s-zoom']
+domcfg = ['/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/s94_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/s94_djc_pnt_fp4/domain_cfg_out.nc', 
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/vqs_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/vqs_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/zco_djc_pnt_fp4/domain_cfg_out.nc']
+conf = ['s94','s94-zoom','vqs','vqs-zoom', 'zco']
 
 fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots' 
 
@@ -81,7 +80,7 @@ for exp in range(len(domcfg)):
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(18, 10))
     plt.sca(ax) # Set the current Axes to ax and the current Figure to the parent of ax.
     ax.invert_yaxis()
-    ax.set_facecolor('silver')
+    ax.set_facecolor('gray')
  
     # RMAX -----------------------------------------------
     # We create a polygon patch for each T-cell of the
@@ -141,7 +140,7 @@ for exp in range(len(domcfg)):
                zorder=5
                )
 
-    if conf[exp] == 'vqs-s':
+    if conf[exp] == 's94' or conf[exp] == 'vqs':
        ax.plot(
           [225., 225., 280.,280.,220.],
           [400.,1800.,1800.,400.,400.],
@@ -152,19 +151,16 @@ for exp in range(len(domcfg)):
         )
 
     # PLOT setting ----------------------------
-    if conf[exp] == 'vqs-s-zoom':
+    if conf[exp] == 's94-zoom' or conf[exp] == 'vqs-zoom':
        ax.set_ylim(1800.0, 400.0)
        ax.set_xlim(225, 280)
     else:
        ax.set_ylim(4500.0, 0.0)
        ax.set_xlim(8, 500)
 
-    p = PatchCollection(patches, alpha=1.0)
+    p = PatchCollection(patches, alpha=0.7)
     p.set_array(np.array(colors))
-    if '-s' in conf[exp]:
-       p.set_clim((0,0.36))
-    elif '-m' in conf[exp]:
-       p.set_clim((0,0.06))
+    p.set_clim((0,0.36))
     cmap = cm.get_cmap("hot_r").copy()
     p.set_cmap(cmap)
     ax.add_collection(p)
