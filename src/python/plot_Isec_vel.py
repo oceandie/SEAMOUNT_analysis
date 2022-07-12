@@ -22,7 +22,7 @@ vel_component = "V"
 
 # 1. INPUT FILES
 
-exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04'
+exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12'
 
 hpg_list  = ['prj','sco','djc','ffl','ffq','fflr']
 vco_list  = ['s94', 'vqs', 'zco']
@@ -45,25 +45,23 @@ for vco in range(len(vco_list)):
 
     # Loading domain geometry
     ds_dom = xr.open_dataset(domcfg, drop_variables=("x", "y","nav_lev"))
+    # Computing land-sea masks
+    ds_dom = compute_masks(ds_dom, merge=True)
+    # Extracting variables
     e3t = ds_dom.e3t_0.squeeze()
     e3w = ds_dom.e3w_0.squeeze()
     e3u = ds_dom.e3u_0.squeeze()
     e3uw = ds_dom.e3uw_0.squeeze()  
     glamt = ds_dom.glamt.squeeze()
     glamu = ds_dom.glamu.squeeze()
-    top_lev = ds_dom.top_level.squeeze()
-    bot_lev = ds_dom.bottom_level.squeeze()    
-    
+    tmask = ds_dom.tmask.squeeze()   
+ 
     # Computing depths
     gdepw, gdept  = e3_to_dep(e3w,  e3t)
     gdepuw, gdepu = e3_to_dep(e3uw, e3u)
 
     print(np.nanmax(gdepw),np.nanmax(gdept),np.nanmax(gdepuw),np.nanmax(gdepu))
 
-    # Computing land-sea mask
-    k_lev = ds_dom.nav_lev + 1
-    tmask = compute_tmask(top_lev, bot_lev, k_lev)  
-     
     # Adding 3rd dimension for plotting
     glamt = glamt.expand_dims({"nav_lev": len(ds_dom.nav_lev)})
     glamu = glamu.expand_dims({"nav_lev": len(ds_dom.nav_lev)})

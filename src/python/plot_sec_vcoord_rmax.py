@@ -12,18 +12,18 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 import matplotlib.cm as cm
 import xarray as xr
-from utils import calc_r0, e3_to_dep, compute_tmask
+from utils import calc_r0, e3_to_dep, compute_masks
 
 # ==============================================================================
 # Input parameters
 
 # 1. INPUT FILES
 
-domcfg = ['/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/s94_djc_pnt_fp4/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/s94_djc_pnt_fp4/domain_cfg_out.nc', 
-          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/vqs_djc_pnt_fp4/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/vqs_djc_pnt_fp4/domain_cfg_out.nc',
-          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04/zco_djc_pnt_fp4/domain_cfg_out.nc']
+domcfg = ['/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12/s94_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12/s94_djc_pnt_fp4/domain_cfg_out.nc', 
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12/vqs_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12/vqs_djc_pnt_fp4/domain_cfg_out.nc',
+          '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12/zco_djc_pnt_fp4/domain_cfg_out.nc']
 conf = ['s94','s94-zoom','vqs','vqs-zoom', 'zco']
 
 fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots' 
@@ -36,24 +36,22 @@ for exp in range(len(domcfg)):
 
     # Loading domain geometry
     ds_dom = xr.open_dataset(domcfg[exp], drop_variables=("x", "y","nav_lev"))
+    # Computing land-sea masks
+    ds_dom = compute_masks(ds_dom, merge=True)
+    # Extracting variables
     e3t = ds_dom.e3t_0.squeeze()
     e3w = ds_dom.e3w_0.squeeze()
     e3u = ds_dom.e3u_0.squeeze()
     e3uw = ds_dom.e3uw_0.squeeze()  
     glamt = ds_dom.glamt.squeeze()
     glamu = ds_dom.glamu.squeeze()
-    top_lev = ds_dom.top_level.squeeze()
-    bot_lev = ds_dom.bottom_level.squeeze()    
-    
+    tmask = ds_dom.tmask.squeeze()   
+ 
     # Computing depths
     gdepw, gdept  = e3_to_dep(e3w,  e3t)
     gdepuw, gdepu = e3_to_dep(e3uw, e3u)
 
     print(np.nanmax(gdepw),np.nanmax(gdept),np.nanmax(gdepuw),np.nanmax(gdepu))
-
-    # Computing land-sea mask
-    k_lev = ds_dom.nav_lev + 1
-    tmask = compute_tmask(top_lev, bot_lev, k_lev)  
 
     # Computing slope paramter of model levels
     r0 = calc_r0(gdept.isel(nav_lev=-1))

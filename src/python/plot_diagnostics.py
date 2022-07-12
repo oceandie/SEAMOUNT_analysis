@@ -45,7 +45,8 @@ for hpg in range(len(hpg_list)):
 
             # Loading NEMO geometry
             ds_dom = xr.open_dataset(exp_dir + '/domain_cfg_out.nc', drop_variables=("x", "y","nav_lev")).squeeze()
-            ds_dom["tmask"] = compute_tmask(ds_dom.top_level, ds_dom.bottom_level, ds_dom.nav_lev + 1)
+            # Computing land-sea masks
+            ds_dom = compute_masks(ds_dom, merge=True)
 
             e1t = ds_dom.e1t.where(ds_dom.tmask==1)
             e2t = ds_dom.e2t.where(ds_dom.tmask==1)
