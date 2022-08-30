@@ -22,17 +22,20 @@ vel_component = "V"
 
 # 1. INPUT FILES
 
-exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-12'
+exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-08-25/EAS02'
+out_frq = '1h'
 
-hpg_list  = ['prj','sco','djc','ffl','ffq','fflr']
-vco_list  = ['s94', 'vqs', 'zco']
+#hpg_list  = ['prj','sco','djc','ffl','ffq','fflr']
+#vco_list  = ['s94', 'vqs', 'zco']
+hpg_list  = ['djc','ffl','djr','fflr']
+vco_list  = ['s94', 'vqs']
 
 conf = ['tot']#,'zoom']
 
-fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots' 
+fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots/2022-08-25/EAS02' 
 
 j_sec = 31 # we plot a zonal cross section in the middle of the domain
-tstep = (24*15)-1
+tstep = (24*180)-1
 
 # ==============================================================================
 
@@ -41,20 +44,24 @@ newcmap = truncate_colormap(cmap, 0.1, 0.9)
 
 for vco in range(len(vco_list)):
 
-    domcfg = exp_base_dir + '/' + vco_list[vco] + '_djc_pnt_fp4/domain_cfg_out.nc'
+    exp = vco_list[vco] + "_" + hpg_list[0] + "_pnt_fp4_" + out_frq
+    domcfg = exp_base_dir + '/' + exp + '/domain_cfg_out.nc'
 
     # Loading domain geometry
-    ds_dom = xr.open_dataset(domcfg, drop_variables=("x", "y","nav_lev"))
+    ds_dom = xr.open_dataset(domcfg, drop_variables=("x", "y","nav_lev")).squeeze()
+    ds_dom = ds_dom.rename_dims({'nav_lev':'z'})
+
     # Computing land-sea masks
     ds_dom = compute_masks(ds_dom, merge=True)
+
     # Extracting variables
-    e3t = ds_dom.e3t_0.squeeze()
-    e3w = ds_dom.e3w_0.squeeze()
-    e3u = ds_dom.e3u_0.squeeze()
-    e3uw = ds_dom.e3uw_0.squeeze()  
-    glamt = ds_dom.glamt.squeeze()
-    glamu = ds_dom.glamu.squeeze()
-    tmask = ds_dom.tmask.squeeze()   
+    e3t = ds_dom.e3t_0
+    e3w = ds_dom.e3w_0
+    e3u = ds_dom.e3u_0
+    e3uw = ds_dom.e3uw_0  
+    glamt = ds_dom.glamt
+    glamu = ds_dom.glamu
+    tmask = ds_dom.tmask   
  
     # Computing depths
     gdepw, gdept  = e3_to_dep(e3w,  e3t)
@@ -63,8 +70,8 @@ for vco in range(len(vco_list)):
     print(np.nanmax(gdepw),np.nanmax(gdept),np.nanmax(gdepuw),np.nanmax(gdepu))
 
     # Adding 3rd dimension for plotting
-    glamt = glamt.expand_dims({"nav_lev": len(ds_dom.nav_lev)})
-    glamu = glamu.expand_dims({"nav_lev": len(ds_dom.nav_lev)})
+    glamt = glamt.expand_dims({"z": len(ds_dom.z)})
+    glamu = glamu.expand_dims({"z": len(ds_dom.z)})
 
     # Extracting arrays of the section
     gdept  = gdept.isel(y=j_sec).values
@@ -77,15 +84,16 @@ for vco in range(len(vco_list)):
 
     for hpg in range(len(hpg_list)):
 
-        exp_dir = exp_base_dir + "/" + vco_list[vco] + "_" + hpg_list[hpg] + "_" + "pnt_fp4"
+        exp = vco_list[vco] + "_" + hpg_list[hpg] + "_pnt_fp4_" + out_frq
+        exp_dir = exp_base_dir + "/" + exp
 
-        dsU = xr.open_dataset(exp_dir + '/SEAMOUNT_xxx_1h_grid_'+vel_component+'.nc',drop_variables=("x", "y","depthu"))
+        dsU = xr.open_dataset(exp_dir + '/SEAMOUNT_'+exp+'_grid_'+vel_component+'.nc',
+                              drop_variables=("x", "y","depth"+vel_component.lower()))
         if vel_component == "U":
            U = dsU.uoce.rolling({'x':2}).mean().fillna(0.)
-           U = U.rename({"depthu": "nav_lev"})
-        if vel_component == "V":
-           U = dsU.voce.rolling({'x':2}).mean().fillna(0.)
-           U = U.rename({"depthv": "nav_lev"})
+        elif vel_component == "V":
+           U = dsU.voce.rolling({'y':2}).mean().fillna(0.)
+        U = U.rename({"depth"+vel_component.lower(): "z"})
 
         U = U.isel(time_counter=tstep,y=j_sec).values
         U[tmask==0] = np.nan
@@ -130,7 +138,7 @@ for vco in range(len(vco_list)):
                     colors = np.append(colors,U[k,i])
 
             # MODEL W-levels and U-points ----------------------------
-            for k in range(len(ds_dom.nav_lev)):
+            for k in range(len(ds_dom.z)):
                 x = glamt[k,:]
                 z = gdepw[k,:]
                 ax.plot(

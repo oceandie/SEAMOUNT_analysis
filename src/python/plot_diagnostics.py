@@ -17,15 +17,19 @@ from utils import *
 
 # 1. INPUT FILES
 
-exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-07-04'
+exp_base_dir = '/data/users/dbruciaf/HPG/SEAMOUNT/2022-08-25/EAS02'
+out_frq = '1h'
 
 color_hpg = ['black','red','blue','limegreen','deepskyblue','gold']
-style_vco = ["solid", "dotted", "dashed"]
+#style_vco = ["solid", "dotted", "dashed"]
+style_vco = ["solid","dashed"]
 #hpg_list  = ['sco','prj','djc','ffl','ffq','fflr']
-hpg_list  = ['sco','djc','ffl','fflr']
-vco_list  = ['s94', 'vqs','zco']
+#hpg_list  = ['sco','djc','ffl','fflr']
+hpg_list  = ['djc','ffl','djr','fflr']
+#vco_list  = ['s94', 'vqs','zco']
+vco_list  = ['s94', 'vqs']
 
-fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots' 
+fig_path = '/home/h01/dbruciaf/mod_dev/SEAMOUNT_analysis/plots/2022-08-25/EAS02' 
 
 # ==============================================================================
 
@@ -41,10 +45,14 @@ for hpg in range(len(hpg_list)):
 
         for ini in ['pnt']:
 
-            exp_dir = exp_base_dir + "/" + vco_list[vco] + "_" + hpg_list[hpg] + "_" + ini + "_fp4"
+            exp = vco_list[vco] + "_" + hpg_list[hpg] + "_" + ini + "_fp4_" + out_frq
+            exp_dir = exp_base_dir + "/" + exp 
 
             # Loading NEMO geometry
-            ds_dom = xr.open_dataset(exp_dir + '/domain_cfg_out.nc', drop_variables=("x", "y","nav_lev")).squeeze()
+            ds_dom = xr.open_dataset(exp_dir + '/domain_cfg_out.nc', 
+                                     drop_variables=("x", "y","nav_lev")).squeeze()
+            ds_dom = ds_dom.rename_dims({'nav_lev':'z'})
+
             # Computing land-sea masks
             ds_dom = compute_masks(ds_dom, merge=True)
 
@@ -52,12 +60,12 @@ for hpg in range(len(hpg_list)):
             e2t = ds_dom.e2t.where(ds_dom.tmask==1)
 
             # Loading NEMO output
-            dsT = xr.open_dataset(exp_dir + '/SEAMOUNT_xxx_1h_grid_T.nc',drop_variables=("x", "y","deptht"))
-            dsU = xr.open_dataset(exp_dir + '/SEAMOUNT_xxx_1h_grid_U.nc',drop_variables=("x", "y","depthu"))
-            dsV = xr.open_dataset(exp_dir + '/SEAMOUNT_xxx_1h_grid_V.nc',drop_variables=("x", "y","depthv"))
+            dsT = xr.open_dataset(exp_dir + '/SEAMOUNT_'+exp+'_grid_T.nc',drop_variables=("x", "y","deptht"))
+            dsU = xr.open_dataset(exp_dir + '/SEAMOUNT_'+exp+'_grid_U.nc',drop_variables=("x", "y","depthu"))
+            dsV = xr.open_dataset(exp_dir + '/SEAMOUNT_'+exp+'_grid_V.nc',drop_variables=("x", "y","depthv"))
 
             e3t = dsT.e3t
-            e3t = e3t.rename({"deptht": "nav_lev"})
+            e3t = e3t.rename({"deptht": "z"})
             e3t = e3t.where(ds_dom.tmask==1)
 
             # Interp. to T-grid
@@ -143,7 +151,7 @@ for hpg in range(len(hpg_list)):
 #plt.yticks(fontsize=30.)
 #plt.ylabel('Maximum velocity error [$m\;s^{-1}$]' ,fontsize=40.)
 
-plt.rc('legend', **{'fontsize':10})
+plt.rc('legend', **{'fontsize':15})
 ax1.legend(loc=0, ncol=1, frameon=False)
 ax2.legend(loc=0, ncol=1, frameon=False)
 ax3.legend(loc=0, ncol=1, frameon=False)

@@ -75,11 +75,11 @@ def e3_to_dep(e3W: xr.DataArray, e3T: xr.DataArray) -> Tuple[xr.DataArray, ...]:
     gdepT = xr.full_like(e3T, None, dtype=np.double).rename('gdepT')
     gdepW = xr.full_like(e3W, None, dtype=np.double).rename('gdepW')
 
-    gdepW[{"nav_lev":0}] = 0.0
-    gdepT[{"nav_lev":0}] = 0.5 * e3W[{"nav_lev":0}]
-    for k in range(1, e3W.sizes["nav_lev"]):
-        gdepW[{"nav_lev":k}] = gdepW[{"nav_lev":k-1}] + e3T[{"nav_lev":k-1}]
-        gdepT[{"nav_lev":k}] = gdepT[{"nav_lev":k-1}] + e3W[{"nav_lev":k}]
+    gdepW[{"z":0}] = 0.0
+    gdepT[{"z":0}] = 0.5 * e3W[{"z":0}]
+    for k in range(1, e3W.sizes["z"]):
+        gdepW[{"z":k}] = gdepW[{"z":k-1}] + e3T[{"z":k-1}]
+        gdepT[{"z":k}] = gdepT[{"z":k-1}] + e3W[{"z":k}]
 
     return tuple([gdepW, gdepT])
 
@@ -118,12 +118,12 @@ def compute_masks(ds_domain, merge=False):
 
     # Need to shift and replace last row/colum with tmask
     # umask(i, j, k) = tmask(i, j, k) ∗ tmask(i + 1, j, k)
-    umask = tmask.rolling(x_c=2).prod().shift(x_c=-1)
+    umask = tmask.rolling(x=2).prod().shift(x=-1)
     umask = umask.where(umask.notnull(), tmask)
     umask = umask.rename("umask")
 
     # vmask(i, j, k) = tmask(i, j, k) ∗ tmask(i, j + 1, k)
-    vmask = tmask.rolling(y_c=2).prod().shift(y_c=-1)
+    vmask = tmask.rolling(y=2).prod().shift(y=-1)
     vmask = vmask.where(vmask.notnull(), tmask)
     vmask = vmask.rename("vmask")
 
@@ -141,9 +141,9 @@ def regrid_UV_to_T(daU, daV):
 
 def calc_speed(daU, daV):
     if "depthu" in daU.dims:
-       daU = daU.rename({"depthu": "nav_lev"})
+       daU = daU.rename({"depthu": "z"})
     if "depthv" in daV.dims:
-       daV = daV.rename({"depthv": "nav_lev"})
+       daV = daV.rename({"depthv": "z"})
     return np.sqrt(daU**2 + daV**2)
 
 def calc_max_vel(daU, daV):
@@ -151,17 +151,48 @@ def calc_max_vel(daU, daV):
 
 def calc_KE(daU, daV):
     if "depthu" in daU.dims:
-       daU = daU.rename({"depthu": "nav_lev"})
+       daU = daU.rename({"depthu": "z"})
     if "depthv" in daV.dims:
-       daV = daV.rename({"depthv": "nav_lev"})
+       daV = daV.rename({"depthv": "z"})
     return 0.5 * (daU**2 + daV**2)
 
 def calc_vol_avg(da, e1, e2, e3):
     cel_vol = e1 * e2 * e3
     dom_vol = cel_vol.sum(skipna=True)
-    if "nav_lev" not in da:
-       cel_vol = cel_vol.sum(dim="nav_lev",skipna=True)
+    if "z" not in da:
+       cel_vol = cel_vol.sum(dim="z",skipna=True)
     return (cel_vol*da).sum(skipna=True) / dom_vol
+
+def calc_SM03_rhd(dep):
+    '''
+    Shchepetkin & McWilliams (2003) initial 
+    rhd profile.    
+    rhd = (rho - rho0)/rho0
+    '''
+    rho0  = 1026.
+    rn_a0 = 0.1655
+    drho  = 3.0
+    delta = 500.
+    rhd   = -(drho/rho0)*np.exp( -dep/delta )
+    return rhd
+
+def calc_press(dep):
+    drho  = 3.0
+    delta = 500.
+    grav  = 9.80665
+    rho0  = 1026.
+    p0    = (grav * drho * delta) / rho0
+    press =  p0 * (np.exp(-dep/delta)-1.0) 
+    return press
+
+def calc_Fx_from_surf(dep):
+    drho  = 3.0
+    delta = 500.
+    grav  = 9.80665
+    rho0  = 1026.
+    p0    = (grav * drho * delta) / rho0
+    Fx    = - p0 * (dep + delta*(np.exp(-dep/delta)-1.0))
+    return Fx
 
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     new_cmap = colors.LinearSegmentedColormap.from_list(
